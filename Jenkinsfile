@@ -1,3 +1,4 @@
+
 pipeline {
     agent any
 
@@ -16,7 +17,7 @@ pipeline {
         stage('Verify Build Environment') {
             steps {
                 sh '''
-                    echo "Checking available tools..."
+                    echo "Checking Jenkins environment..."
                     java -version
                     git --version
                 '''
@@ -26,13 +27,21 @@ pipeline {
         stage('Build and Test') {
             steps {
                 sh '''
-                    echo "Preparing Python environment..."
-                    python3 --version
-                    python3 -m venv .venv-ci
-                    .venv-ci/bin/python -m pip install --upgrade pip
-                    .venv-ci/bin/python -m pip install -r requirements.txt
-                    .venv-ci/bin/python -m pytest -v --junitxml=pytest-results.xml
+                    echo "Checking Python image availability..."
+                    echo "Python tests will run in a separate container."
                 '''
+
+                script {
+                    docker.image('python:3.12-slim').inside('-u root') {
+                        sh '''
+                            python --version
+                            python -m venv .venv-ci
+                            .venv-ci/bin/python -m pip install --upgrade pip
+                            .venv-ci/bin/python -m pip install -r requirements.txt
+                            .venv-ci/bin/python -m pytest -v --junitxml=pytest-results.xml
+                        '''
+                    }
+                }
             }
 
             post {
@@ -45,10 +54,14 @@ pipeline {
 
         stage('Application Validation') {
             steps {
-                sh '''
-                    .venv-ci/bin/python -m compileall -q app tests
-                    echo "Application validation completed."
-                '''
+                script {
+                    docker.image('python:3.12-slim').inside('-u root') {
+                        sh '''
+                            python -m compileall -q app tests
+                            echo "Application validation completed."
+                        '''
+                    }
+                }
             }
         }
     }
