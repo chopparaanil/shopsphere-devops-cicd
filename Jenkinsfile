@@ -20,17 +20,13 @@ pipeline {
                     echo "Checking Jenkins environment..."
                     java -version
                     git --version
+                    docker --version
                 '''
             }
         }
 
         stage('Build and Test') {
             steps {
-                sh '''
-                    echo "Checking Python image availability..."
-                    echo "Python tests will run in a separate container."
-                '''
-
                 script {
                     docker.image('python:3.12-slim').inside('-u root') {
                         sh '''
@@ -62,6 +58,61 @@ pipeline {
                         '''
                     }
                 }
+            }
+        }
+
+        stage('Build Docker Image') {
+            steps {
+                script {
+                    docker.build('shopsphere-app:${BUILD_NUMBER}')
+                }
+            }
+        }
+
+        stage('Docker Health Check') {
+            steps {
+                sh '''
+                    set -eu
+
+                    IMAGE="shopsphere-app:${BUILD_NUMBER}"
+                    CONTAINER="shopsphere-ci-test-${BUILD_NUMBER}"
+
+                    cleanup() {
+                        docker rm -f "$CONTAINER" >/dev/null 2>&1 || true
+                    }
+
+                    trap cleanup EXIT
+
+                    echo "Starting ShopSphere container..."
+                    docker run -d \
+                        --name "$CONTAINER" \
+                        -p 127.0.0.1::7000 \
+                        "$IMAGE"
+
+                    PORT=$(docker port "$CONTAINER" 7000/tcp | sed 's/.*://')
+
+                    echo "Checking ShopSphere health endpoint..."
+
+                    ATTEMPT=0
+                    until curl --fail --silent "http://127.0.0.1:${PORT}/health"; do
+                        ATTEMPT=$((ATTEMPT + 1))
+
+                        if [ "$ATTEMPT" -ge 15 ]; then
+                            echo "Health check failed."
+                            docker logs "$CONTAINER"
+                            exit 1
+                        fi
+
+                        sleep 2
+                    done
+
+                    echo ""
+                    echo "Checking ShopSphere readiness endpoint..."
+                    curl --fail --silent "http://127.0.0.1:${PORT}/ready"
+                    echo ""
+
+                    echo "Docker image health checks passed."
+                '''
             }
         }
     }
