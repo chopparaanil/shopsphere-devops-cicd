@@ -70,32 +70,38 @@ pipeline {
             }
         }
 
+        
         stage('Docker Health Check') {
             steps {
                 sh '''
                     set -eu
 
                     IMAGE="shopsphere-app:${BUILD_NUMBER}"
+                    NETWORK="shopsphere-ci-${BUILD_NUMBER}"
                     CONTAINER="shopsphere-ci-test-${BUILD_NUMBER}"
 
                     cleanup() {
                         docker rm -f "$CONTAINER" >/dev/null 2>&1 || true
+                        docker network rm "$NETWORK" >/dev/null 2>&1 || true
                     }
 
                     trap cleanup EXIT
 
+                    echo "Creating temporary Docker network..."
+                    docker network create "$NETWORK"
+
                     echo "Starting ShopSphere container..."
                     docker run -d \
                         --name "$CONTAINER" \
-                        -p 127.0.0.1::7000 \
+                        --network "$NETWORK" \
                         "$IMAGE"
-
-                    PORT=$(docker port "$CONTAINER" 7000/tcp | sed 's/.*://')
 
                     echo "Checking ShopSphere health endpoint..."
 
                     ATTEMPT=0
-                    until curl --fail --silent "http://127.0.0.1:${PORT}/health"; do
+                    until curl --fail --silent \
+                        "http://${CONTAINER}:7000/health"; do
+
                         ATTEMPT=$((ATTEMPT + 1))
 
                         if [ "$ATTEMPT" -ge 15 ]; then
@@ -109,13 +115,16 @@ pipeline {
 
                     echo ""
                     echo "Checking ShopSphere readiness endpoint..."
-                    curl --fail --silent "http://127.0.0.1:${PORT}/ready"
-                    echo ""
 
+                    curl --fail --silent \
+                        "http://${CONTAINER}:7000/ready"
+
+                    echo ""
                     echo "Docker image health checks passed."
                 '''
             }
         }
+      
     }
 
     post {
