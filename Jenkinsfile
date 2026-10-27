@@ -64,7 +64,8 @@ pipeline {
         stage('Build Docker Image') {
             steps {
                 script {
-                    docker.build('shopsphere-app:${BUILD_NUMBER}')
+                    def imageTag = "shopsphere-app:${env.BUILD_NUMBER}"
+                    docker.build(imageTag)
                 }
             }
         }
