@@ -99,7 +99,10 @@ pipeline {
                     echo "Checking ShopSphere health endpoint..."
 
                     ATTEMPT=0
-                    until curl --fail --silent \
+                    until docker run --rm \
+                        --network "$NETWORK" \
+                        curlimages/curl:8.12.1 \
+                        --fail --silent --show-error \
                         "http://${CONTAINER}:7000/health"; do
 
                         ATTEMPT=$((ATTEMPT + 1))
@@ -116,7 +119,10 @@ pipeline {
                     echo ""
                     echo "Checking ShopSphere readiness endpoint..."
 
-                    curl --fail --silent \
+                    docker run --rm \
+                        --network "$NETWORK" \
+                        curlimages/curl:8.12.1 \
+                        --fail --silent --show-error \
                         "http://${CONTAINER}:7000/ready"
 
                     echo ""
