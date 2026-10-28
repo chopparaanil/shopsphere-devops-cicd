@@ -25,6 +25,27 @@ pipeline {
             }
         }
 
+        stage('SonarQube Analysis') {
+            steps {
+                script {
+                    def scannerHome = tool 'SonarScanner'
+
+                    withSonarQubeEnv('SonarQube') {
+                        sh """
+                            ${scannerHome}/bin/sonar-scanner \
+                              -Dsonar.projectKey=ShopSphere \
+                              -Dsonar.projectName=ShopSphere \
+                              -Dsonar.sources=app \
+                              -Dsonar.tests=tests \
+                              -Dsonar.python.version=3.12 \
+                              -Dsonar.exclusions=**/.venv-ci/**,**/__pycache__/** \
+                              -Dsonar.sourceEncoding=UTF-8
+                        """
+                    }
+                }
+            }
+        }
+
         stage('Build and Test') {
             steps {
                 script {
