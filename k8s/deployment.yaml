@@ -1,0 +1,36 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: shopsphere
+  labels:
+    app: shopsphere
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: shopsphere
+  template:
+    metadata:
+      labels:
+        app: shopsphere
+    spec:
+      imagePullSecrets:
+        - name: ecr-secret
+      containers:
+        - name: shopsphere
+          image: 597787442390.dkr.ecr.ap-south-1.amazonaws.com/shopsphere:9
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 7000
+          readinessProbe:
+            httpGet:
+              path: /ready
+              port: 7000
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 7000
+            initialDelaySeconds: 10
+            periodSeconds: 15
