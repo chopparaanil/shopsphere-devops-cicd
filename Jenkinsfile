@@ -151,7 +151,38 @@ pipeline {
                 '''
             }
         }
-      
+
+        
+        stage('Push Image to Amazon ECR') {
+            steps {
+                sh '''
+                    set -eu
+
+                    AWS_REGION="ap-south-1"
+                    AWS_ACCOUNT_ID="597787442390"
+                    ECR_REPOSITORY="shopsphere"
+                    ECR_REGISTRY="${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com"
+                    LOCAL_IMAGE="shopsphere-app:${BUILD_NUMBER}"
+                    ECR_IMAGE="${ECR_REGISTRY}/${ECR_REPOSITORY}:${BUILD_NUMBER}"
+
+                    echo "Authenticating with Amazon ECR..."
+                    /usr/local/bin/aws ecr get-login-password \
+                        --region "$AWS_REGION" |
+                        /usr/bin/docker login \
+                            --username AWS \
+                            --password-stdin "$ECR_REGISTRY"
+
+                    echo "Tagging image: $ECR_IMAGE"
+                    /usr/bin/docker tag "$LOCAL_IMAGE" "$ECR_IMAGE"
+
+                    echo "Pushing image to Amazon ECR..."
+                    /usr/bin/docker push "$ECR_IMAGE"
+
+                    echo "Successfully pushed: $ECR_IMAGE"
+                '''
+            }
+        }
+       
     }
 
     post {
