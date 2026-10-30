@@ -5,7 +5,7 @@ ENV PYTHONUNBUFFERED=1
 
 WORKDIR /app
 
-# Update installed Debian packages to receive available security fixes
+# Update installed Debian packages
 RUN apt-get update && \
     apt-get upgrade -y && \
     apt-get clean && \
@@ -14,19 +14,24 @@ RUN apt-get update && \
 # Create a non-root application user
 RUN useradd --create-home --shell /usr/sbin/nologin appuser
 
+# Install application dependencies
 COPY requirements.txt .
-
-# Remove pip from the runtime image after installing dependencies
-RUN rm -rf \
+RUN python -m pip install --no-cache-dir -r requirements.txt && \
+    rm -rf \
     /usr/local/lib/python3.12/site-packages/pip \
     /usr/local/lib/python3.12/site-packages/pip-*.dist-info \
     /usr/local/bin/pip \
     /usr/local/bin/pip3 \
     /usr/local/bin/pip3.12
-COPY app/ ./app/
 
+# Copy application and database initialization script
+COPY app/ ./app/
+COPY init_db.py .
+
+# Run as non-root user
 USER appuser
 
 EXPOSE 7000
 
-CMD ["gunicorn", "--bind", "0.0.0.0:7000", "--workers", "2", "app.main:app"]
+# Initialize tables before starting Gunicorn
+CMD ["sh", "-c", "python init_db.py && exec gunicorn --bind 0.0.0.0:7000 --workers 2 app.main:app"]

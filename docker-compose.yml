@@ -1,0 +1,33 @@
+services:
+  db:
+    image: postgres:16
+    container_name: shopsphere-db
+    environment:
+      POSTGRES_DB: shopsphere
+      POSTGRES_USER: shopsphere
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
+    volumes:
+      - shopsphere-postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U shopsphere -d shopsphere"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    restart: unless-stopped
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: shopsphere-app
+    environment:
+      DATABASE_URL: postgresql+psycopg://shopsphere:${POSTGRES_PASSWORD_URL_ENCODED:?Set URL-encoded database password in .env}@db:5432/shopsphere
+    ports:
+      - "7000:7000"
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: unless-stopped
+
+volumes:
+  shopsphere-postgres-data:
