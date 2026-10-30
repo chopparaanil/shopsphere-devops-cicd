@@ -213,8 +213,8 @@ pipeline {
 
                         sed -i "s|image: 597787442390.dkr.ecr.ap-south-1.amazonaws.com/shopsphere:.*|image: ${ECR_IMAGE}|" k8s/deployment.yaml
 
-                        git config user.name "Jenkins"
-                        git config user.email "jenkins@example.com"
+                        git config user.name "chopparaanil"
+                        git config user.email "chopparaanil781@gmail.com"
 
                         git add k8s/deployment.yaml
 
