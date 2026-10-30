@@ -18,7 +18,7 @@ spec:
         - name: ecr-secret
       containers:
         - name: shopsphere
-          image: 597787442390.dkr.ecr.ap-south-1.amazonaws.com/shopsphere:19
+          image: 597787442390.dkr.ecr.ap-south-1.amazonaws.com/shopsphere:20
           imagePullPolicy: Always
           ports:
             - containerPort: 7000
