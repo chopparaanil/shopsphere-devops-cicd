@@ -194,6 +194,63 @@ pipeline {
                 }
             }
         }
+        stage('Update Kubernetes Manifest') {
+            steps {
+                withCredentials([
+                    usernamePassword(
+                        credentialsId: 'github-credentials',
+                        usernameVariable: 'GIT_USERNAME',
+                        passwordVariable: 'GIT_TOKEN'
+                    )
+                ]) {
+                    sh '''
+                        set -eu
+                        set +x
+
+                        ECR_IMAGE="597787442390.dkr.ecr.ap-south-1.amazonaws.com/shopsphere:${BUILD_NUMBER}"
+
+                        echo "Updating Kubernetes deployment manifest..."
+
+                        sed -i "s|image: 597787442390.dkr.ecr.ap-south-1.amazonaws.com/shopsphere:.*|image: ${ECR_IMAGE}|" k8s/deployment.yaml
+
+                        git config user.name "Jenkins"
+                        git config user.email "jenkins@example.com"
+
+                        git add k8s/deployment.yaml
+
+                        if git diff --cached --quiet; then
+                            echo "No manifest changes to commit."
+                            exit 0
+                        fi
+
+                        git commit -m "Update ShopSphere image to ${BUILD_NUMBER} [skip ci]"
+
+                        ASKPASS_SCRIPT="$(mktemp)"
+                        trap 'rm -f "$ASKPASS_SCRIPT"' EXIT
+
+                        cat > "$ASKPASS_SCRIPT" <<'EOF'
+#!/bin/sh
+case "$1" in
+    *Username*) printf '%s\\n' "$GIT_USERNAME" ;;
+    *Password*) printf '%s\\n' "$GIT_TOKEN" ;;
+    *) exit 1 ;;
+esac
+EOF
+
+                        chmod 700 "$ASKPASS_SCRIPT"
+
+                        export GIT_ASKPASS="$ASKPASS_SCRIPT"
+                        export GIT_TERMINAL_PROMPT=0
+
+                        echo "Pushing updated manifest to GitHub..."
+                        git push origin HEAD:main
+
+                        echo "GitOps manifest pushed successfully."
+                    '''
+                }
+            }
+        }
+
      
        
     }
