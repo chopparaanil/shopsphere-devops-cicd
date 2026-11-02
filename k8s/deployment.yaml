@@ -20,6 +20,16 @@ spec:
         - name: shopsphere
           image: 597787442390.dkr.ecr.ap-south-1.amazonaws.com/shopsphere:20
           imagePullPolicy: Always
+
+          env:
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: shopsphere-db-secret
+                  key: POSTGRES_PASSWORD
+
+            - name: DATABASE_URL
+              value: "postgresql+psycopg://shopsphere:$(POSTGRES_PASSWORD)@postgres:5432/shopsphere"
           ports:
             - containerPort: 7000
           readinessProbe:

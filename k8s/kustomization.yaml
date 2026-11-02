@@ -1,0 +1,10 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+  - deployment.yaml
+  - service.yaml
+  - storage/shopsphere-storageclass.yaml
+  - storage/postgres-pvc.yaml
+  - storage/postgres.yaml
+  - metallb/metallb-shopsphere.yaml
