@@ -18,18 +18,18 @@ spec:
         - name: ecr-secret
       containers:
         - name: shopsphere
-          image: 597787442390.dkr.ecr.ap-south-1.amazonaws.com/shopsphere:22
+          image: 597787442390.dkr.ecr.ap-south-1.amazonaws.com/shopsphere:20
           imagePullPolicy: Always
 
           env:
-            - name: POSTGRES_PASSWORD
+            - name: DATABASE_PASSWORD_URLENCODED
               valueFrom:
                 secretKeyRef:
-                  name: shopsphere-db-secret
-                  key: POSTGRES_PASSWORD
+                  name: shopsphere-db-url-secret
+                  key: POSTGRES_PASSWORD_URLENCODED
 
             - name: DATABASE_URL
-              value: "postgresql+psycopg://shopsphere:$(POSTGRES_PASSWORD)@postgres:5432/shopsphere"
+              value: "postgresql+psycopg://shopsphere:$(DATABASE_PASSWORD_URLENCODED)@postgres:5432/shopsphere"
           ports:
             - containerPort: 7000
           readinessProbe:
